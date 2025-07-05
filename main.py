@@ -1,37 +1,25 @@
-import io
-import os
-import json
+import io, os, json
 from typing import Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
 app = FastAPI()
-
-# Dossier racine partagé
 FOLDER_ID = "1S7ULRbWlb3g-m2-FwuA-I_A6nfZ5onNq"
 
-
-# ---------------------------------------------------------------------------
-# Helper : connexion Google Drive
-# ---------------------------------------------------------------------------
+# ----------- Helper Drive ----------------------------------------------------
 def drive():
     creds_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
     creds = service_account.Credentials.from_service_account_info(
-        creds_info,
-        scopes=["https://www.googleapis.com/auth/drive"],
+        creds_info, scopes=["https://www.googleapis.com/auth/drive"]
     )
     return build("drive", "v3", credentials=creds)
 
-
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+# ----------- Routes ----------------------------------------------------------
 @app.get("/drive/list")
 def list_files():
-    """Lister les fichiers du dossier partagé."""
     svc = drive()
     res = svc.files().list(
         q=f"'{FOLDER_ID}' in parents and trashed=false",
@@ -39,64 +27,55 @@ def list_files():
     ).execute()
     return res.get("files", [])
 
-
 @app.post("/drive/upload")
 async def upload_file(name: str, file: UploadFile = File(...)):
-    """Téléverser un fichier dans le dossier racine."""
     data = await file.read()
     media = MediaIoBaseUpload(io.BytesIO(data), mimetype=file.content_type)
     meta = {"name": name, "parents": [FOLDER_ID]}
-    svc = drive()
-    created = svc.files().create(
-        body=meta, media_body=media, fields="id,name,parents"
-    ).execute()
-    return created
-
+    return drive().files().create(body=meta, media_body=media, fields="id,name").execute()
 
 @app.post("/drive/create-folder")
-def create_folder(name: str):
-    """Créer un sous‑dossier dans le dossier racine."""
-    svc = drive()
-    meta = {
-        "name": name,
-        "mimeType": "application/vnd.google-apps.folder",
-        "parents": [FOLDER_ID],
-    }
-    folder = svc.files().create(body=meta, fields="id,name").execute()
-    return folder
+async def create_folder(request: Request, name: Optional[str] = None):
+    """
+    Accepte :
+      • JSON   : { "name": "Kaka" }
+      • x‑www-form‑urlencoded : name=Kaka
+      • Querystring           : ?name=Kaka
+    """
+    if not name:                       # query ou form vide → essayer de lire JSON
+        body = await request.json()
+        name = body.get("name")
+    if not name:
+        raise HTTPException(status_code=400, detail="name manquant")
 
+    meta = {"name": name,
+            "mimeType": "application/vnd.google-apps.folder",
+            "parents": [FOLDER_ID]}
+    return drive().files().create(body=meta, fields="id,name").execute()
 
 @app.patch("/drive/update/{file_id}")
 async def update_file(
     file_id: str,
+    request: Request,
     new_name: Optional[str] = None,
     new_parent_id: Optional[str] = None,
 ):
-    """Renommer et/ou déplacer un fichier."""
+    if not (new_name or new_parent_id):
+        body = await request.json()
+        new_name = new_name or body.get("new_name")
+        new_parent_id = new_parent_id or body.get("new_parent_id")
+
     svc = drive()
-    body = {}
-    if new_name:
-        body["name"] = new_name
-
+    body = {"name": new_name} if new_name else {}
     if new_parent_id:
-        current = svc.files().get(fileId=file_id, fields="parents").execute()
-        prev = ",".join(current.get("parents", [])) or None
-        updated = svc.files().update(
-            fileId=file_id,
-            body=body,
-            addParents=new_parent_id,
-            removeParents=prev,
-            fields="id,name,parents",
-        ).execute()
-    else:
-        updated = svc.files().update(
-            fileId=file_id, body=body, fields="id,name,parents"
-        ).execute()
-    return updated
-
+        prev = ",".join(svc.files().get(fileId=file_id, fields="parents").execute()["parents"])
+        return svc.files().update(
+            fileId=file_id, body=body,
+            addParents=new_parent_id, removeParents=prev,
+            fields="id,name,parents").execute()
+    return svc.files().update(fileId=file_id, body=body, fields="id,name,parents").execute()
 
 @app.delete("/drive/file/{file_id}")
 def delete_file(file_id: str):
-    """Supprimer un fichier par son ID."""
     drive().files().delete(fileId=file_id).execute()
     return {"status": "deleted", "id": file_id}
