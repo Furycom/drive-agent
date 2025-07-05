@@ -10,10 +10,10 @@ paths:
   /drive/list:
     get:
       operationId: listFiles
-      summary: Lister les fichiers du dossier Defence_Yann
+      summary: Lister les fichiers
       responses:
         "200":
-          description: Tableau des fichiers
+          description: OK
           content:
             application/json:
               schema:
@@ -27,7 +27,7 @@ paths:
   /drive/create-folder:
     post:
       operationId: createFolder
-      summary: Créer un sous‑dossier dans Defence_Yann
+      summary: Créer un sous-dossier
       requestBody:
         required: true
         content:
@@ -35,19 +35,14 @@ paths:
             schema:
               type: object
               properties:
-                name:
-                  type: string
-                  description: Nom du dossier à créer
+                name: { type: string }
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
       responses:
-        "200":
-          description: Dossier créé
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:   { type: string }
-                  name: { type: string }
+        "200": { description: OK }
 
   /drive/upload:
     post:
@@ -60,27 +55,15 @@ paths:
             schema:
               type: object
               properties:
-                name:
-                  type: string
-                  description: Nom du fichier
-                file:
-                  type: string
-                  format: binary
+                name: { type: string }
+                file: { type: string, format: binary }
       responses:
-        "200":
-          description: Fichier créé
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:   { type: string }
-                  name: { type: string }
+        "200": { description: OK }
 
   /drive/update/{file_id}:
     patch:
       operationId: updateFile
-      summary: Renommer ou déplacer un fichier
+      summary: Renommer ou déplacer
       parameters:
         - name: file_id
           in: path
@@ -93,25 +76,10 @@ paths:
             schema:
               type: object
               properties:
-                new_name:
-                  type: string
-                  description: Nouveau nom
-                new_parent_id:
-                  type: string
-                  description: ID du dossier destination
+                new_name: { type: string }
+                new_parent_id: { type: string }
       responses:
-        "200":
-          description: Fichier mis à jour
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  id:   { type: string }
-                  name: { type: string }
-                  parents:
-                    type: array
-                    items: { type: string }
+        "200": { description: OK }
 
   /drive/file/{file_id}:
     delete:
@@ -123,12 +91,4 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        "200":
-          description: Confirmation
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status: { type: string }
-                  id:     { type: string }
+        "200": { description: OK }
