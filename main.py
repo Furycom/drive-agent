@@ -10,7 +10,7 @@ from googleapiclient.http import MediaIoBaseUpload
 
 app = FastAPI()
 
-# ID du dossier racine partagé
+# Dossier racine partagé
 FOLDER_ID = "1S7ULRbWlb3g-m2-FwuA-I_A6nfZ5onNq"
 
 
@@ -42,16 +42,28 @@ def list_files():
 
 @app.post("/drive/upload")
 async def upload_file(name: str, file: UploadFile = File(...)):
-    """Téléverser un nouveau fichier."""
+    """Téléverser un fichier dans le dossier racine."""
     data = await file.read()
     media = MediaIoBaseUpload(io.BytesIO(data), mimetype=file.content_type)
     meta = {"name": name, "parents": [FOLDER_ID]}
-
     svc = drive()
     created = svc.files().create(
         body=meta, media_body=media, fields="id,name,parents"
     ).execute()
     return created
+
+
+@app.post("/drive/create-folder")
+def create_folder(name: str):
+    """Créer un sous‑dossier dans le dossier racine."""
+    svc = drive()
+    meta = {
+        "name": name,
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": [FOLDER_ID],
+    }
+    folder = svc.files().create(body=meta, fields="id,name").execute()
+    return folder
 
 
 @app.patch("/drive/update/{file_id}")
@@ -60,45 +72,31 @@ async def update_file(
     new_name: Optional[str] = None,
     new_parent_id: Optional[str] = None,
 ):
-    """
-    Renommer et/ou déplacer un fichier.
-
-    - new_name       : nouveau nom (optionnel)
-    - new_parent_id  : ID du dossier cible (optionnel)
-    """
+    """Renommer et/ou déplacer un fichier."""
     svc = drive()
-
-    # Prépare le body (renommage)
     body = {}
     if new_name:
         body["name"] = new_name
 
-    # Gestion déplacement (changement de dossier)
     if new_parent_id:
-        # récupérer les parents existants
         current = svc.files().get(fileId=file_id, fields="parents").execute()
-        previous_parents = ",".join(current.get("parents", [])) or None
+        prev = ",".join(current.get("parents", [])) or None
         updated = svc.files().update(
             fileId=file_id,
             body=body,
             addParents=new_parent_id,
-            removeParents=previous_parents,
+            removeParents=prev,
             fields="id,name,parents",
         ).execute()
     else:
-        # juste renommage
         updated = svc.files().update(
-            fileId=file_id,
-            body=body,
-            fields="id,name,parents",
+            fileId=file_id, body=body, fields="id,name,parents"
         ).execute()
-
     return updated
 
 
 @app.delete("/drive/file/{file_id}")
 def delete_file(file_id: str):
     """Supprimer un fichier par son ID."""
-    svc = drive()
-    svc.files().delete(fileId=file_id).execute()
+    drive().files().delete(fileId=file_id).execute()
     return {"status": "deleted", "id": file_id}
