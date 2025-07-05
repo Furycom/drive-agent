@@ -1,0 +1,108 @@
+openapi: "3.1.0"
+info:
+  title: GPT Drive Agent
+  version: "1.1"
+
+servers:
+  - url: https://web-production-da670.up.railway.app
+
+paths:
+  /drive/list:
+    get:
+      operationId: listFiles
+      summary: Lister les fichiers du dossier Defence_Yann
+      responses:
+        "200":
+          description: Tableau des fichiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:   { type: string }
+                    name: { type: string }
+
+  /drive/upload:
+    post:
+      operationId: uploadFile
+      summary: Téléverser un nouveau fichier
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Fichier créé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:   { type: string }
+                  name: { type: string }
+
+  /drive/update/{file_id}:
+    patch:
+      operationId: updateFile
+      summary: Renommer et/ou déplacer un fichier
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_name:
+                  type: string
+                  description: Nouveau nom du fichier
+                new_parent_id:
+                  type: string
+                  description: ID du dossier destination (optionnel)
+      responses:
+        "200":
+          description: Fichier mis à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:   { type: string }
+                  name: { type: string }
+                  parents:
+                    type: array
+                    items: { type: string }
+
+  /drive/file/{file_id}:
+    delete:
+      operationId: deleteFile
+      summary: Supprimer un fichier
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Confirmation suppression
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  id:     { type: string }
