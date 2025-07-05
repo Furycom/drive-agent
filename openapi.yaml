@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GPT Drive Agent
-  version: "1.5"
+  version: "1.6"          # ← incrément pour purger le cache
 
 servers:
   - url: https://web-production-da670.up.railway.app
@@ -20,10 +20,14 @@ paths:
                 type: array
                 items:
                   type: object
-                  required: [id, name]
+                  required:
+                    - id
+                    - name
                   properties:
-                    id:   { type: string }
-                    name: { type: string }
+                    id:
+                      type: string
+                    name:
+                      type: string
 
   /drive/create-folder:
     post:
@@ -35,10 +39,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name]
+              required:
+                - name
               properties:
                 name:
                   type: string
+                  description: Nom du dossier
       responses:
         "201":
           description: Dossier créé
@@ -46,10 +52,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [id, name]
+                required:
+                  - id
+                  - name
                 properties:
-                  id:   { type: string }
-                  name: { type: string }
+                  id:
+                    type: string
+                  name:
+                    type: string
 
   /drive/upload:
     post:
@@ -61,10 +71,15 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [name, file]
+              required:
+                - name
+                - file
               properties:
-                name: { type: string }
-                file: { type: string, format: binary }
+                name:
+                  type: string
+                file:
+                  type: string
+                  format: binary
       responses:
         "201":
           description: Fichier créé
@@ -72,10 +87,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [id, name]
+                required:
+                  - id
+                  - name
                 properties:
-                  id:   { type: string }
-                  name: { type: string }
+                  id:
+                    type: string
+                  name:
+                    type: string
 
   /drive/update/{file_id}:
     patch:
@@ -85,7 +104,8 @@ paths:
         - name: file_id
           in: path
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -93,8 +113,11 @@ paths:
             schema:
               type: object
               properties:
-                new_name:     { type: string }
-                new_parent_id:{ type: string }
+                new_name:
+                  type: string
+                new_parent_id:
+                  type: string
+              additionalProperties: false
       responses:
         "200":
           description: Fichier mis à jour
@@ -102,10 +125,14 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [id, name]
+                required:
+                  - id
+                  - name
                 properties:
-                  id:   { type: string }
-                  name: { type: string }
+                  id:
+                    type: string
+                  name:
+                    type: string
 
   /drive/file/{file_id}:
     delete:
@@ -115,7 +142,8 @@ paths:
         - name: file_id
           in: path
           required: true
-          schema: { type: string }
+          schema:
+            type: string
       responses:
         "200":
           description: Fichier supprimé
@@ -123,7 +151,11 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [status, id]
+                required:
+                  - status
+                  - id
                 properties:
-                  status: { type: string }
-                  id:     { type: string }
+                  status:
+                    type: string
+                  id:
+                    type: string
