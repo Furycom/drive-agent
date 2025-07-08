@@ -18,6 +18,11 @@ FOLDER_ID = "1S7ULRbWlb3g-m2-FwuA-I_A6nfZ5onNq"  # dossier Drive racine
 # ------------------------------------------------------------------
 def drive():
     creds_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+
+    # Correction : transforme les "\n" littéraux en vrais sauts de ligne
+    if "private_key" in creds_info:
+        creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+
     creds = service_account.Credentials.from_service_account_info(
         creds_info, scopes=["https://www.googleapis.com/auth/drive"]
     )
