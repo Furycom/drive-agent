@@ -17,14 +17,17 @@ FOLDER_ID = "1S7ULRbWlb3g-m2-FwuA-I_A6nfZ5onNq"  # dossier Drive racine
 # Helper Google Drive
 # ------------------------------------------------------------------
 def drive():
-    creds_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    creds_raw = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
 
-    # Correction : transforme les "\n" littéraux en vrais sauts de ligne
-    if "private_key" in creds_info:
-        creds_info["private_key"] = creds_info["private_key"].replace("\\n", "\n")
+    # Détecter si \n est échappé ou réel
+    if "\\n" in creds_raw:
+        creds_json = json.loads(creds_raw)
+        creds_json["private_key"] = creds_json["private_key"].replace("\\n", "\n")
+    else:
+        creds_json = json.loads(creds_raw)
 
     creds = service_account.Credentials.from_service_account_info(
-        creds_info, scopes=["https://www.googleapis.com/auth/drive"]
+        creds_json, scopes=["https://www.googleapis.com/auth/drive"]
     )
     return build("drive", "v3", credentials=creds)
 
